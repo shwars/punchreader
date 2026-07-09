@@ -169,11 +169,7 @@ export default function App() {
           <button
             type="button"
             className="secondary"
-            onClick={() => {
-              setRotation((value) => (value + 90) % 360);
-              setCorners(null);
-              setAnalysisCorners(null);
-            }}
+            onClick={() => setRotation((value) => (value + 90) % 360)}
           >
             Rotate {rotation}°
           </button>
