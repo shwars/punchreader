@@ -13,6 +13,7 @@ node_modules/.tmp/
 # Test and coverage output
 coverage/
 .nyc_output/
+.playwright-cli/
 
 # Logs
 *.log

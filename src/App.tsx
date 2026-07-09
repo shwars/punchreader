@@ -8,6 +8,13 @@ import { loadBitmapFromFile, loadBitmapFromUrl, recognizePunchCard } from "./rec
 import sampleCardUrl from "../sample/photo.jpg?url";
 
 const DEFAULT_ENCODING = "gost-upp-8bit-parity";
+const SAMPLE_ROTATION = 90;
+const SAMPLE_ANALYSIS_CORNERS: Point[] = [
+  { x: 68, y: 239 },
+  { x: 1194, y: 234 },
+  { x: 1220, y: 733 },
+  { x: 87, y: 719 }
+];
 
 export default function App() {
   const [deck, setDeck] = useLocalStorage<DeckLine[]>("punchreader.deck", []);
@@ -16,6 +23,7 @@ export default function App() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [corners, setCorners] = useState<Point[] | null>(null);
+  const [analysisCorners, setAnalysisCorners] = useState<Point[] | null>(null);
   const [rotation, setRotation] = useState(0);
   const [recognition, setRecognition] = useState<RecognitionOutput | null>(null);
   const [reviewText, setReviewText] = useState("");
@@ -37,8 +45,10 @@ export default function App() {
     setError(null);
     setRecognition(null);
     setCorners(null);
+    setAnalysisCorners(null);
     setReviewText("");
     setNaturalSize(null);
+    setRotation(0);
 
     const nextUrl = URL.createObjectURL(file);
     setImageUrl((current) => {
@@ -54,8 +64,10 @@ export default function App() {
     setError(null);
     setRecognition(null);
     setCorners(null);
+    setAnalysisCorners(SAMPLE_ANALYSIS_CORNERS);
     setReviewText("");
     setNaturalSize(null);
+    setRotation(SAMPLE_ROTATION);
     setImageUrl(sampleCardUrl);
     setBitmap(await loadBitmapFromUrl(sampleCardUrl));
   }
@@ -70,9 +82,9 @@ export default function App() {
     setError(null);
 
     try {
-      const output = await recognizePunchCard(bitmap, { corners: corners ?? undefined, rotation });
+      const output = await recognizePunchCard(bitmap, { corners: analysisCorners ?? corners ?? undefined, rotation });
       setRecognition(output);
-      setCorners(output.corners);
+      setCorners(analysisCorners ? null : output.corners);
       const decoded = selectedProfile.decode(output.grid);
       setReviewText(decoded.text);
     } catch (caught) {
@@ -154,7 +166,15 @@ export default function App() {
           <button type="button" onClick={() => inputRef.current?.click()}>
             Take or choose photo
           </button>
-          <button type="button" className="secondary" onClick={() => setRotation((value) => (value + 90) % 360)}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              setRotation((value) => (value + 90) % 360);
+              setCorners(null);
+              setAnalysisCorners(null);
+            }}
+          >
             Rotate {rotation}°
           </button>
           <button type="button" onClick={analyze} disabled={!bitmap || isBusy}>
@@ -200,6 +220,9 @@ export default function App() {
           <p className="message">
             Best auto-score is {bestProfile.label}. The selected profile is still used for the editable line.
           </p>
+        ) : null}
+        {analysisCorners ? (
+          <p className="message">Using the calibrated sample-card crop. Choose your own photo to return to auto/manual crop.</p>
         ) : null}
 
         {imageUrl ? (
