@@ -4,7 +4,9 @@ import WarpedPreview from "./components/WarpedPreview";
 import { DeckLine, Point, RecognitionOutput } from "./domain/types";
 import { ENCODING_PROFILES, getProfile, scoreProfiles } from "./domain/encodings";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { orderCorners } from "./recognition/geometry";
 import { loadBitmapFromFile, loadBitmapFromUrl, recognizePunchCard } from "./recognition/recognizer";
+import { pointFromRotatedSpace, pointToRotatedSpace } from "./recognition/rotation";
 import sampleCardUrl from "../sample/photo.jpg?url";
 
 const DEFAULT_ENCODING = "gost-upp-8bit-parity";
@@ -40,6 +42,7 @@ export default function App() {
   }, [recognition, selectedProfile]);
   const profileScores = useMemo(() => (recognition ? scoreProfiles(recognition.grid) : []), [recognition]);
   const bestProfile = profileScores[0]?.profile;
+  const imageSize = bitmap ? { width: bitmap.width, height: bitmap.height } : naturalSize;
 
   async function handleFile(file: File): Promise<void> {
     setError(null);
@@ -82,9 +85,20 @@ export default function App() {
     setError(null);
 
     try {
-      const output = await recognizePunchCard(bitmap, { corners: analysisCorners ?? corners ?? undefined, rotation });
+      const cornersForAnalysis =
+        analysisCorners ??
+        (corners && imageSize
+          ? corners.map((corner) => pointToRotatedSpace(corner, imageSize.width, imageSize.height, rotation))
+          : undefined);
+      const output = await recognizePunchCard(bitmap, { corners: cornersForAnalysis, rotation });
       setRecognition(output);
-      setCorners(analysisCorners ? null : output.corners);
+      setCorners(
+        analysisCorners || !imageSize
+          ? null
+          : orderCorners(
+              output.corners.map((corner) => pointFromRotatedSpace(corner, imageSize.width, imageSize.height, rotation))
+            )
+      );
       const decoded = selectedProfile.decode(output.grid);
       setReviewText(decoded.text);
     } catch (caught) {
