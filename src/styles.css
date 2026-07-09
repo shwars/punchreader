@@ -248,6 +248,9 @@ h2 {
   background: #11645f;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
   font-size: 0.7rem;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .warped-preview {

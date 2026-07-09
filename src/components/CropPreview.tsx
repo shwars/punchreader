@@ -23,6 +23,9 @@ export default function CropPreview({
       return;
     }
 
+    event.preventDefault();
+    event.stopPropagation();
+
     const size = naturalSize;
     const target = event.currentTarget.parentElement;
     if (!target) {
@@ -31,8 +34,11 @@ export default function CropPreview({
 
     const rect = target.getBoundingClientRect();
     const next = [...corners];
+    const previousBodyTouchAction = document.body.style.touchAction;
+    document.body.style.touchAction = "none";
 
     function move(pointerEvent: PointerEvent): void {
+      pointerEvent.preventDefault();
       const x = ((pointerEvent.clientX - rect.left) / rect.width) * size.width;
       const y = ((pointerEvent.clientY - rect.top) / rect.height) * size.height;
       next[index] = {
@@ -48,6 +54,7 @@ export default function CropPreview({
     const stop = (): void => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", stop);
+      document.body.style.touchAction = previousBodyTouchAction;
     };
 
     window.addEventListener("pointermove", move);
